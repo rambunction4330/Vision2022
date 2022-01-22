@@ -1,3 +1,5 @@
+#include <iostream>
+#include <algorithm>
 
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
@@ -49,7 +51,8 @@ namespace rbv {
 
     void apply(cv::Mat& input, cv::Mat& output) {
       cv::blur(input, output, {blurSize, blurSize});
-      cv::inRange(output, low, high, output);
+      cv::cvtColor(output, output, cv::COLOR_BGR2HSV);
+      cv::inRange(output, cv::Scalar(low), cv::Scalar(high), output);
       cv::morphologyEx(output, output, cv::MORPH_OPEN, openMatrix);
       cv::morphologyEx(output, output, cv::MORPH_CLOSE, closeMatrix);
     }
