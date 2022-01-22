@@ -7,7 +7,7 @@
 #include <opencv2/videoio.hpp>
 #include <opencv2/highgui.hpp>
 
-#include <rvb/Threshold.hpp>
+#include <rbv/Threshold.hpp>
 
 int main(int argc, char* argv[]) {
 
