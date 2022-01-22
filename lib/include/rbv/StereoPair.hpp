@@ -3,7 +3,7 @@
 
 #include <opencv2/core.hpp>
 
-#include "rvb/Camera.hpp"
+#include "rbv/Camera.hpp"
 
 namespace rbv {
   struct StereoPair {
