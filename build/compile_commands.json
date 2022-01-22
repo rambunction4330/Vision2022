@@ -1,0 +1,42 @@
+[
+{
+  "directory": "/Users/georgejurgiel/Desktop/Vision2022/build",
+  "command": "/Library/Developer/CommandLineTools/usr/bin/c++ -I/Users/georgejurgiel/Desktop/Vision2022/lib/include -isystem /opt/homebrew/Cellar/opencv/4.5.3_3/include/opencv4 -g -arch x86_64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX12.1.sdk -std=gnu++17 -o lib/CMakeFiles/rbv.dir/src/Camera.cpp.o -c /Users/georgejurgiel/Desktop/Vision2022/lib/src/Camera.cpp",
+  "file": "/Users/georgejurgiel/Desktop/Vision2022/lib/src/Camera.cpp"
+},
+{
+  "directory": "/Users/georgejurgiel/Desktop/Vision2022/build",
+  "command": "/Library/Developer/CommandLineTools/usr/bin/c++ -I/Users/georgejurgiel/Desktop/Vision2022/lib/include -isystem /opt/homebrew/Cellar/opencv/4.5.3_3/include/opencv4 -g -arch x86_64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX12.1.sdk -std=gnu++17 -o lib/CMakeFiles/rbv.dir/src/StereoPair.cpp.o -c /Users/georgejurgiel/Desktop/Vision2022/lib/src/StereoPair.cpp",
+  "file": "/Users/georgejurgiel/Desktop/Vision2022/lib/src/StereoPair.cpp"
+},
+{
+  "directory": "/Users/georgejurgiel/Desktop/Vision2022/build",
+  "command": "/Library/Developer/CommandLineTools/usr/bin/c++ -I/Users/georgejurgiel/Desktop/Vision2022/lib/include -isystem /opt/homebrew/Cellar/opencv/4.5.3_3/include/opencv4 -g -arch x86_64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX12.1.sdk -std=gnu++17 -o lib/CMakeFiles/rbv.dir/src/Threshold.cpp.o -c /Users/georgejurgiel/Desktop/Vision2022/lib/src/Threshold.cpp",
+  "file": "/Users/georgejurgiel/Desktop/Vision2022/lib/src/Threshold.cpp"
+},
+{
+  "directory": "/Users/georgejurgiel/Desktop/Vision2022/build",
+  "command": "/Library/Developer/CommandLineTools/usr/bin/c++ -I/Users/georgejurgiel/Desktop/Vision2022/lib/include -isystem /opt/homebrew/Cellar/opencv/4.5.3_3/include/opencv4 -g -arch x86_64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX12.1.sdk -std=gnu++11 -o tools/CMakeFiles/hsvTunning.dir/hsvTunning.cpp.o -c /Users/georgejurgiel/Desktop/Vision2022/tools/hsvTunning.cpp",
+  "file": "/Users/georgejurgiel/Desktop/Vision2022/tools/hsvTunning.cpp"
+},
+{
+  "directory": "/Users/georgejurgiel/Desktop/Vision2022/build",
+  "command": "/Library/Developer/CommandLineTools/usr/bin/c++ -I/Users/georgejurgiel/Desktop/Vision2022/lib/include -isystem /opt/homebrew/Cellar/opencv/4.5.3_3/include/opencv4 -g -arch x86_64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX12.1.sdk -std=gnu++11 -o tools/CMakeFiles/camerCalibration.dir/cameraCalibration.cpp.o -c /Users/georgejurgiel/Desktop/Vision2022/tools/cameraCalibration.cpp",
+  "file": "/Users/georgejurgiel/Desktop/Vision2022/tools/cameraCalibration.cpp"
+},
+{
+  "directory": "/Users/georgejurgiel/Desktop/Vision2022/build",
+  "command": "/Library/Developer/CommandLineTools/usr/bin/c++ -I/Users/georgejurgiel/Desktop/Vision2022/lib/include -isystem /opt/homebrew/Cellar/opencv/4.5.3_3/include/opencv4 -g -arch x86_64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX12.1.sdk -std=gnu++11 -o tools/CMakeFiles/stereoCalibration.dir/cameraCalibration.cpp.o -c /Users/georgejurgiel/Desktop/Vision2022/tools/cameraCalibration.cpp",
+  "file": "/Users/georgejurgiel/Desktop/Vision2022/tools/cameraCalibration.cpp"
+},
+{
+  "directory": "/Users/georgejurgiel/Desktop/Vision2022/build",
+  "command": "/Library/Developer/CommandLineTools/usr/bin/c++ -I/Users/georgejurgiel/Desktop/Vision2022/lib/include -isystem /opt/homebrew/Cellar/opencv/4.5.3_3/include/opencv4 -g -arch x86_64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX12.1.sdk -std=gnu++11 -o main/CMakeFiles/hubDetection.dir/hub.cpp.o -c /Users/georgejurgiel/Desktop/Vision2022/main/hub.cpp",
+  "file": "/Users/georgejurgiel/Desktop/Vision2022/main/hub.cpp"
+},
+{
+  "directory": "/Users/georgejurgiel/Desktop/Vision2022/build",
+  "command": "/Library/Developer/CommandLineTools/usr/bin/c++ -I/Users/georgejurgiel/Desktop/Vision2022/lib/include -isystem /opt/homebrew/Cellar/opencv/4.5.3_3/include/opencv4 -g -arch x86_64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX12.1.sdk -std=gnu++11 -o main/CMakeFiles/ballDetection.dir/hub.cpp.o -c /Users/georgejurgiel/Desktop/Vision2022/main/hub.cpp",
+  "file": "/Users/georgejurgiel/Desktop/Vision2022/main/hub.cpp"
+}
+]

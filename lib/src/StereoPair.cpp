@@ -1,0 +1,1 @@
+#include "rvb/StereoPair.hpp"
