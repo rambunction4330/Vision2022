@@ -1,4 +1,4 @@
-#include "rvb/Camera.hpp"
+#include "rbv/Camera.hpp"
 
 namespace rbv {
   void Camera::write(cv::FileStorage& fs) const {
