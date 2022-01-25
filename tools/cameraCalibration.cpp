@@ -124,7 +124,7 @@ int main(int argc, char* argv[]) {
     return 0;
   }
 
-  bool undistorted = true;
+  bool undistorted = true, axes = true;
   cv::Mat undistort, display;
   while (true) {
     capture >> frame;
@@ -133,6 +133,18 @@ int main(int argc, char* argv[]) {
       std::cerr << "Lost connection to camera\n";
       return 0;
     } 
+
+    std::vector<cv::Point2f> corners;
+    bool found = cv::findChessboardCorners(frame, chessboardSize, corners);
+
+    if (axes && found) {
+      cv::Mat rvec, tvec;
+      std::vector<cv::Point3f> objectPoints = generateChessboardPoints(chessboardSize, squareSize);
+      cv::solvePnP(objectPoints, corners, camera.cameraMatrix, camera.distortion, rvec, tvec);
+      cv::drawFrameAxes(frame, camera.cameraMatrix, camera.distortion, rvec, tvec, 100);
+    } else {
+      cv::drawChessboardCorners(frame, chessboardSize, corners, found);
+    }
 
     if (undistorted) {
       cv::undistort(frame, undistort, camera.cameraMatrix, camera.distortion);
@@ -158,6 +170,7 @@ int main(int argc, char* argv[]) {
     }
 
     undistorted = key == 'u' ? !undistorted : undistorted;
+    axes = key == 'a' ? !axes : axes;
 
     if (key == 'q' || key == 27) {
       break;
