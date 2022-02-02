@@ -36,3 +36,6 @@ build/*
 
 # Binaries
 bin/*
+
+# VSCode
+.vscode.*
