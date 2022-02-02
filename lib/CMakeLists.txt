@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 17)
 find_package(OpenCV REQUIRED)
 
 # Executable
-add_library(rbv src/Camera.cpp src/StereoPair.cpp src/Threshold.cpp)
+add_library(rbv src/Camera.cpp src/StereoPair.cpp src/HSVThreshold.cpp)
 
 # Linked Libraries
 target_link_libraries(rbv ${OpenCV_LIBS})

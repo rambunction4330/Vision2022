@@ -1,4 +1,4 @@
-#include "rbv/Threshold.hpp"
+#include "rbv/HSVThreshold.hpp"
 
 namespace rbv {
 HSVThreshold::HSVThreshold()
