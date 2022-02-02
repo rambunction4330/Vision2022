@@ -1,63 +1,45 @@
-#include <iostream>
-#include <vector>
-#include <string>
 #include <filesystem>
+#include <iostream>
+#include <string>
+#include <vector>
 
 #include <opencv2/core.hpp>
-#include <opencv2/videoio.hpp>
 #include <opencv2/highgui.hpp>
+#include <opencv2/videoio.hpp>
 
-#include <rbv/Threshold.hpp>
+#include <rbv/HSVThreshold.hpp>
 
-void highHCallback(int pos, void* highH) {
-  *((int*)highH) = pos;
-}
-void lowHCallback(int pos, void* lowH) {
-  *((int*)lowH) = pos;
-}
-void highSCallback(int pos, void* highS) {
-  *((int*)highS) = pos;
-}
-void lowSCallback(int pos, void* lowS) {
-  *((int*)lowS) = pos;
-}
-void highVCallback(int pos, void* highV) {
-  *((int*)highV) = pos;
-}
-void lowVCallback(int pos, void* lowV) {
-  *((int*)lowV) = pos;
-}
+void highHCallback(int pos, void *highH) { *((int *)highH) = pos; }
+void lowHCallback(int pos, void *lowH) { *((int *)lowH) = pos; }
+void highSCallback(int pos, void *highS) { *((int *)highS) = pos; }
+void lowSCallback(int pos, void *lowS) { *((int *)lowS) = pos; }
+void highVCallback(int pos, void *highV) { *((int *)highV) = pos; }
+void lowVCallback(int pos, void *lowV) { *((int *)lowV) = pos; }
 
-void blurCallback(int pos, void* blur) {
-  *((int*)blur) = pos;
+void blurCallback(int pos, void *blur) { *((int *)blur) = pos; }
+void closeShapeCallback(int pos, void *shape) {
+  *((cv::MorphShapes *)shape) = cv::MorphShapes(pos);
 }
-void closeShapeCallback(int pos, void* shape) {
-  *((cv::MorphShapes*)shape) = cv::MorphShapes(pos);
+void closeSizeCallback(int pos, void *size) { *((int *)size) = pos; }
+void openShapeCallback(int pos, void *shape) {
+  *((cv::MorphShapes *)shape) = cv::MorphShapes(pos);
 }
-void closeSizeCallback(int pos, void* size) {
-  *((int*)size) = pos;
-}
-void openShapeCallback(int pos, void* shape) {
-  *((cv::MorphShapes*)shape) = cv::MorphShapes(pos);
-}
-void openSizeCallback(int pos, void* size) {
-  *((int*)size) = pos;
-}
+void openSizeCallback(int pos, void *size) { *((int *)size) = pos; }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
 
   /***********************
    * Command Line Parsing
    ***********************/
 
   // Keys definign command line argumanet behavior
-  const std::string parseKeys = 
-    "{ h ? help usage |   | prints this message                   }"
-    "{ id cameraID    | 0 | Camera id used for thresholding       }"
-    "{ b blur         |   | Whether to present a blur slider      }"
-    "{ m morph        |   | Whether to present morphology sliders }"
-    "{ i in input     |   | Input file                            }"
-    "{ o out output   |   | Output file                           }";
+  const std::string parseKeys =
+      "{ h ? help usage |   | prints this message                   }"
+      "{ id cameraID    | 0 | Camera id used for thresholding       }"
+      "{ b blur         |   | Whether to present a blur slider      }"
+      "{ m morph        |   | Whether to present morphology sliders }"
+      "{ i in input     |   | Input file                            }"
+      "{ o out output   |   | Output file                           }";
 
   // Object to parse any argument given
   cv::CommandLineParser parser(argc, argv, parseKeys);
@@ -85,7 +67,7 @@ int main(int argc, char* argv[]) {
 
   // Morphology variables
   int highH = 180, lowH = 0, highS = 255, lowS = 0, highV = 255, lowV = 0;
-  int blurSize = 0, openSize = 0, closeSize = 0; 
+  int blurSize = 0, openSize = 0, closeSize = 0;
   cv::MorphShapes openShape = cv::MORPH_RECT, closeShape = cv::MORPH_RECT;
 
   /*************
@@ -134,28 +116,33 @@ int main(int argc, char* argv[]) {
 
   // Trackbars
   cv::createTrackbar("High H", "HSV Tunning", NULL, 180, highHCallback, &highH);
-  cv::createTrackbar("Low H",  "HSV Tunning", NULL, 180, highHCallback, &lowH);
+  cv::createTrackbar("Low H", "HSV Tunning", NULL, 180, highHCallback, &lowH);
   cv::createTrackbar("High S", "HSV Tunning", NULL, 255, highHCallback, &highS);
-  cv::createTrackbar("Low S",  "HSV Tunning", NULL, 255, highHCallback, &lowS);
+  cv::createTrackbar("Low S", "HSV Tunning", NULL, 255, highHCallback, &lowS);
   cv::createTrackbar("High V", "HSV Tunning", NULL, 255, highHCallback, &highV);
-  cv::createTrackbar("Low V",  "HSV Tunning", NULL, 255, highHCallback, &lowV);
+  cv::createTrackbar("Low V", "HSV Tunning", NULL, 255, highHCallback, &lowV);
 
   // Conditionaly add extra sliders depending on argument flags
   if (useBlurSlider) {
-    cv::createTrackbar("Blur Size", "HSV Tunning", NULL, 100, blurCallback, &blurSize);
+    cv::createTrackbar("Blur Size", "HSV Tunning", NULL, 100, blurCallback,
+                       &blurSize);
   }
 
   if (useMorphSlider) {
-    cv::createTrackbar("Open Size", "HSV Tunning",   NULL, 100, openSizeCallback,   &openSize);
-    cv::createTrackbar("Open Shape", "HSV Tunning",  NULL,   2, openShapeCallback,  &openShape);
-    cv::createTrackbar("Close Size", "HSV Tunning",  NULL, 100, closeSizeCallback,  &closeSize);
-    cv::createTrackbar("Close Shape", "HSV Tunning", NULL,   2, closeShapeCallback, &closeShape);
+    cv::createTrackbar("Open Size", "HSV Tunning", NULL, 100, openSizeCallback,
+                       &openSize);
+    cv::createTrackbar("Open Shape", "HSV Tunning", NULL, 2, openShapeCallback,
+                       &openShape);
+    cv::createTrackbar("Close Size", "HSV Tunning", NULL, 100,
+                       closeSizeCallback, &closeSize);
+    cv::createTrackbar("Close Shape", "HSV Tunning", NULL, 2,
+                       closeShapeCallback, &closeShape);
   }
 
   /************
    * Main Loop
    ************/
- 
+
   // Open camera with the given id
   cv::VideoCapture capture(cameraID);
 
@@ -178,8 +165,9 @@ int main(int argc, char* argv[]) {
       break;
     }
 
-    outThreshold = rbv::HSVThreshold({lowH, lowS, lowV}, {highH, highS, highV}, 
-                                      blurSize, openSize, openShape, closeSize, closeShape);
+    outThreshold =
+        rbv::HSVThreshold({lowH, lowS, lowV}, {highH, highS, highV}, blurSize,
+                          openSize, openShape, closeSize, closeShape);
 
     outThreshold.apply(frame, thresh);
 
@@ -214,9 +202,9 @@ int main(int argc, char* argv[]) {
     if (key == 'q' || key == 27) {
       break;
     }
-  } 
+  }
 
-   // Cleanup when done.
+  // Cleanup when done.
   cv::destroyAllWindows();
   capture.release();
   cv::waitKey(1);

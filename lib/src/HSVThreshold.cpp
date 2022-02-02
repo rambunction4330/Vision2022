@@ -8,8 +8,8 @@ HSVThreshold::HSVThreshold()
 HSVThreshold::HSVThreshold(cv::Scalar_<int> l, cv::Scalar_<int> h, int bSize,
                            int openSize, cv::MorphShapes openShape,
                            int closeSize, cv::MorphShapes closeShape)
-    : low(l), high(h), blurSize(bSize), openSize(openSize), closeSize(closeSize), 
-      openShape(openShape), closeShape(closeShape) {
+    : low(l), high(h), blurSize(bSize), openSize(openSize),
+      closeSize(closeSize), openShape(openShape), closeShape(closeShape) {
   if (openSize > 0) {
     openMatrix = cv::getStructuringElement(openShape, {openSize, openSize});
   }
@@ -42,9 +42,8 @@ void HSVThreshold::apply(cv::Mat &input, cv::Mat &output) const {
 void HSVThreshold::write(cv::FileStorage &fs) const {
   fs << "{"
      << "High" << high << "Low" << low << "BlurSize" << blurSize << "OpenSize"
-     << openSize << "CloseSize" << closeSize << "OpenShape" << openShape 
-     << "CloseShape" << closeShape 
-     << "}";
+     << openSize << "CloseSize" << closeSize << "OpenShape" << openShape
+     << "CloseShape" << closeShape << "}";
 }
 
 void HSVThreshold::read(const cv::FileNode &node) {

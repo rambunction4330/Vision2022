@@ -16,10 +16,10 @@ public:
   inline const cv::Scalar_<int> &getLow() const { return low; }
   inline const cv::Scalar_<int> &getHigh() const { return high; }
   inline const int &getBlurSize() const { return blurSize; }
-  inline const int& getOpenSize() const { return openSize; }
-  inline const int& getCloseSize() const { return openSize; }
-  inline const cv::MorphShapes& getOpenShape() const { return openShape; }
-  inline const cv::MorphShapes& getCloseShape() const { return closeShape; }
+  inline const int &getOpenSize() const { return openSize; }
+  inline const int &getCloseSize() const { return openSize; }
+  inline const cv::MorphShapes &getOpenShape() const { return openShape; }
+  inline const cv::MorphShapes &getCloseShape() const { return closeShape; }
   inline const cv::Mat &getOpenMatrix() const { return openMatrix; }
   inline const cv::Mat &getCloseMatrix() const { return closeMatrix; }
 
@@ -47,7 +47,7 @@ private:
   cv::Scalar_<int> low;
 
   int blurSize;
-  
+
   int openSize, closeSize;
   cv::MorphShapes openShape, closeShape;
 
