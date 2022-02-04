@@ -34,12 +34,14 @@ int main(int argc, char *argv[]) {
 
   // Keys definign command line argumanet behavior
   const std::string parseKeys =
-      "{ h ? help usage |   | prints this message                   }"
-      "{ id cameraID    | 0 | Camera id used for thresholding       }"
-      "{ b blur         |   | Whether to present a blur slider      }"
-      "{ m morph        |   | Whether to present morphology sliders }"
-      "{ i in input     |   | Input file                            }"
-      "{ o out output   |   | Output file                           }";
+      "{ h ? help usage |   | prints this message                    }"
+      "{ c0 camera0ID   | 0 | Camera id used for thresholding        }"
+      "{ c1 camera1ID   | 1 | id of second camera for stereo tunning }"
+      "{ s stereo       |   | Wheather or not to use stereo cameras  }"
+      "{ b blur         |   | Whether to present a blur slider       }"
+      "{ m morph        |   | Whether to present morphology sliders  }"
+      "{ i in input     |   | Input file                             }"
+      "{ o out output   |   | Output file                            }";
 
   // Object to parse any argument given
   cv::CommandLineParser parser(argc, argv, parseKeys);
@@ -53,7 +55,9 @@ int main(int argc, char *argv[]) {
   }
 
   // Get arguments from the parser
-  int cameraID = parser.get<double>("cameraID");
+  int camera0ID = parser.get<double>("camera0ID");
+  int camera1ID = parser.get<double>("camera1ID");
+  bool useStereo  = parser.has("stereo");
   bool useBlurSlider = parser.has("blur");
   bool useMorphSlider = parser.has("morph");
   std::string inputFile = parser.get<std::string>("input");
@@ -74,14 +78,13 @@ int main(int argc, char *argv[]) {
    * File Input
    *************/
 
-  // Variable to hold any thresholding data
-  rbv::HSVThreshold inThreshold;
-
   // If a file was given, extract the data from that file
   if (inputFile != "") {
     if (std::filesystem::exists(inputFile)) {
       cv::FileStorage storage(inputFile, cv::FileStorage::READ);
       if (storage.isOpened()) {
+        rbv::HSVThreshold inThreshold;
+
         storage["HSVThreshold"] >> inThreshold;
 
         highH = inThreshold.getHighH();
@@ -144,37 +147,68 @@ int main(int argc, char *argv[]) {
    ************/
 
   // Open camera with the given id
-  cv::VideoCapture capture(cameraID);
+  cv::VideoCapture capture0(camera0ID), capture1;
 
   // Check camera data
-  if (!capture.isOpened()) {
-    std::cerr << "Could access camera with id: '" << cameraID << "'\n";
+  if (!capture0.isOpened()) {
+    std::cerr << "Could access camera with id: '" << camera0ID << "'\n";
     return 0;
   }
 
-  cv::Mat frame, thresh, display;
+  if (useStereo) {
+    // Open camera with the given id
+    capture1.open(camera1ID);
+
+    // Check camera data
+    if (!capture1.isOpened()) {
+      std::cerr << "Could access camera with id: '" << camera1ID << "'\n";
+      return 0;
+   } 
+  }
+
+  cv::Mat frame0, thresh0, display;
+  cv::Mat frame1, thresh1;
   rbv::HSVThreshold outThreshold;
   bool showThresh = true;
   while (true) {
+    outThreshold =
+    rbv::HSVThreshold({lowH, lowS, lowV}, {highH, highS, highV}, blurSize,
+                      openSize, openShape, closeSize, closeShape);
+
     // Get the next frame from the camera.
-    capture >> frame;
+    capture0 >> frame0;
 
     // Check camera data.
-    if (frame.empty()) {
+    if (frame0.empty()) {
       std::cerr << "Lost connection to camera\n";
       break;
     }
 
-    outThreshold =
-        rbv::HSVThreshold({lowH, lowS, lowV}, {highH, highS, highV}, blurSize,
-                          openSize, openShape, closeSize, closeShape);
-
-    outThreshold.apply(frame, thresh);
+    outThreshold.apply(frame0, thresh0);
 
     if (showThresh) {
-      thresh.copyTo(display);
+      thresh0.copyTo(display);
     } else {
-      frame.copyTo(display);
+      frame0.copyTo(display);
+    }
+
+    if (useStereo) {
+      // Get the next frame from the camera.
+      capture1 >> frame1;
+
+      // Check camera data.
+      if (frame1.empty()) {
+        std::cerr << "Lost connection to camera\n";
+        break;
+      }
+
+      outThreshold.apply(frame1, thresh1);
+
+      if (showThresh) {
+        cv::hconcat(display, thresh1, display);
+      } else {
+        cv::hconcat(display, frame1, display);
+      }
     }
 
     // Show Image
@@ -206,7 +240,8 @@ int main(int argc, char *argv[]) {
 
   // Cleanup when done.
   cv::destroyAllWindows();
-  capture.release();
+  capture0.release();
+  if (useStereo) { capture1.release(); }
   cv::waitKey(1);
   return 0;
 }

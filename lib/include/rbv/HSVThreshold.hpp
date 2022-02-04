@@ -30,7 +30,7 @@ public:
   inline const int &getHighV() { return high[2]; }
   inline const int &getLowV() { return low[2]; }
 
-  void apply(cv::Mat &input, cv::Mat &output) const;
+  void apply(const cv::Mat &input, cv::Mat &output) const;
 
   void write(cv::FileStorage &fs) const;
   void read(const cv::FileNode &node);

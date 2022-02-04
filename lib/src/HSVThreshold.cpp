@@ -19,8 +19,10 @@ HSVThreshold::HSVThreshold(cv::Scalar_<int> l, cv::Scalar_<int> h, int bSize,
   }
 }
 
-void HSVThreshold::apply(cv::Mat &input, cv::Mat &output) const {
-  cv::Mat temp = input;
+void HSVThreshold::apply(const cv::Mat &input, cv::Mat &output) const {
+  cv::Mat temp;
+  input.copyTo(temp);
+
   if (blurSize > 0) {
     cv::blur(temp, temp, {blurSize, blurSize});
   }
