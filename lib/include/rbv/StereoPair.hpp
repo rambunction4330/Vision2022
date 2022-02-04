@@ -2,40 +2,64 @@
 #pragma once
 
 #include <opencv2/core.hpp>
+#include <opencv2/calib3d.hpp>
 
 #include "rbv/Camera.hpp"
 
 namespace rbv {
-  struct StereoPair {
-    rbv::Camera camera1, camera2;
-    cv::Mat rotation1To2, tralslation1To2;
+
+  struct StereoFrame {
+    cv::Mat leftImage, rightImage;
+  };
+
+  class StereoPair {
+   public: 
+      StereoPair() {}
+      
+      StereoPair(const std::vector<std::vector<cv::Point3f>>& objectPoints, 
+                 const std::vector<std::vector<cv::Point2f>>& leftImagePoints, 
+                 const std::vector<std::vector<cv::Point2f>>& rightImagePoints,
+                 cv::Size imageSize);
+
+      StereoPair(const Camera& leftCamera, const Camera& rightCamera, 
+                 const std::vector<std::vector<cv::Point3f>>& objectPoints, 
+                 const std::vector<std::vector<cv::Point2f>>& leftImagePoints, 
+                 const std::vector<std::vector<cv::Point2f>>& rightImagePoints,
+                 cv::Size imageSize);
+
+      bool openCaptures();
+      void releaseCaptures();
+      bool getNextFrames(StereoFrame& frames);
+      bool getNextFramesUndistorted(StereoFrame& undistorted);
+      bool getNextFramesRectified(StereoFrame& rectified);
+      bool getNextFrameDisparity(cv::Mat& disparity);
+      bool getNextFrameDepth(cv::Mat& depth);
+
+      void undistortStereoFrame(const StereoFrame& src, StereoFrame& dst) const;
+      void rectifyStereoFrame(const StereoFrame& src, StereoFrame& dst) const;
+      void calculateDisparityRectified(const StereoFrame& rectified, cv::Mat& disparity) const;
+      void calculateDisparity(const StereoFrame& src, cv::Mat& disparity) const;
+      void calculateFrameDepth(const cv::Mat& disparity, cv::Mat& depth) const;
+      void calculateFrameDepthRectified(const StereoFrame& rectified, cv::Mat& depth) const;
+      void calculateFrameDepth(const StereoFrame& frame, cv::Mat& depth) const;
+
+      void triangulatePoints(const std::vector<cv::Point2f>& rightPoints, 
+                             const std::vector<cv::Point2f>& leftPoints, 
+                             std::vector<cv::Point3f>& worldPoints) const;
+
+    void write(cv::FileStorage& fs) const;
+    void read(const cv::FileNode& node);
+
+   private:
+    rbv::Camera leftCamera, rightCamera;
+    cv::Mat rotationLeft2Right, tralslationLeft2Right;
     cv::Mat essentail, fundamental;
-    cv::Mat rectified1, rectified2;
-    cv::Mat projection1, projection2;
+    cv::Mat rectifiedLeft, rectifiedRight;
+    cv::Mat projectionLeft, projectionRight;
     cv::Mat disparityToDepth;
-
-    void write(cv::FileStorage& fs) const {
-      fs << "{" << "Camera1" << camera1 << "Camera2" << camera2 
-         << "Rotation1To2" << rotation1To2 << "Tralslation1To2" << tralslation1To2 
-         << "Essentail" << essentail << "Fundamental" << fundamental
-         << "Rectified1" << rectified1 << "Rectified2" << rectified2
-         << "Projection1" << projection1 << "Projection2" << projection2
-         << "DisparityToDepth" << disparityToDepth << "}";
-    }
-
-    void read(const cv::FileNode& node) {
-      node["Camera1"] >> camera1;
-      node["Camera2"] >> camera2;
-      node["Rotation1To2"] >> rotation1To2;
-      node["Tralslation1To2"] >> tralslation1To2;
-      node["Essentail"] >> essentail;
-      node["Fundamental"] >> fundamental;
-      node["Rectified1"] >> rectified1;
-      node["Rectified2"] >> rectified2;
-      node["Projection1"] >> projection1;
-      node["Projection2"] >> projection2;
-      node["DisparityToDepth"] >> disparityToDepth;
-    }
+    cv::Mat leftMap1, leftMap2;
+    cv::Mat rightMap1, rightMap2;
+    cv::Ptr<cv::StereoMatcher> disparityMatcher = cv::StereoSGBM::create();
   };
 
   static void write(cv::FileStorage& fs, const std::string&, const StereoPair& x) { 
