@@ -1,31 +1,32 @@
-#include <iostream>
-#include <vector>
-#include <string>
 #include <filesystem>
+#include <iostream>
+#include <string>
+#include <vector>
 
-#include <opencv2/core.hpp>
-#include <opencv2/videoio.hpp>
 #include <opencv2/calib3d.hpp>
+#include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
+#include <opencv2/videoio.hpp>
 
 #include <rbv/Camera.hpp>
 
-std::vector<cv::Point3f> generateChessboardPoints(cv::Size boardSize, double squareSize);
+std::vector<cv::Point3f> generateChessboardPoints(cv::Size boardSize,
+                                                  double squareSize);
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
 
   /***********************
    * Command Line Parsing
    ***********************/
 
   // Keys for argument parsing
-  const std::string keys = 
-  "{ h ? help usage |       | prints this message             }"
-  "{ id cameraID    |   0   | Camera id used for thresholding }"
-  "{ squareSize     |   25  | Size of each chessboard square  }"
-  "{ chessboardSize | (9,6) | Dimensions of the chessboard    }"
-  "{ in input       |       | Input file                      }"
-  "{ out output     |       | Output file                     }";
+  const std::string keys =
+      "{ h ? help usage |       | prints this message             }"
+      "{ id cameraID    |   0   | Camera id used for thresholding }"
+      "{ squareSize     |   25  | Size of each chessboard square  }"
+      "{ chessboardSize | (9,6) | Dimensions of the chessboard    }"
+      "{ in input       |       | Input file                      }"
+      "{ out output     |       | Output file                     }";
 
   // Parser object
   cv::CommandLineParser parser(argc, argv, keys);
@@ -45,7 +46,8 @@ int main(int argc, char* argv[]) {
   std::string outputFile = parser.get<std::string>("output");
 
   cv::Size chessboardSize;
-  if (sscanf(parser.get<std::string>("chessboardSize").c_str(), "(%d,%d)", &chessboardSize.width, &chessboardSize.height) != 2) {
+  if (sscanf(parser.get<std::string>("chessboardSize").c_str(), "(%d,%d)",
+             &chessboardSize.width, &chessboardSize.height) != 2) {
     std::cerr << "Invalid format for argument 'chessboardSize'\n";
     return 0;
   }
@@ -56,11 +58,11 @@ int main(int argc, char* argv[]) {
     return 0;
   }
 
-  rbv::Camera camera;
+  rbv::Camera inCamera;
   if (inputFile != "" && std::filesystem::exists(inputFile)) {
     cv::FileStorage fileStorage(inputFile, cv::FileStorage::READ);
     if (fileStorage.isOpened()) {
-      fileStorage["Camera"] >> camera;
+      fileStorage["Camera"] >> inCamera;
     }
     fileStorage.release();
   }
@@ -73,7 +75,8 @@ int main(int argc, char* argv[]) {
     return 0;
   }
 
-  cv::Size imageSize(capture.get(cv::CAP_PROP_FRAME_HEIGHT), capture.get(cv::CAP_PROP_FRAME_WIDTH));
+  cv::Size imageSize(capture.get(cv::CAP_PROP_FRAME_HEIGHT),
+                     capture.get(cv::CAP_PROP_FRAME_WIDTH));
 
   std::vector<std::vector<cv::Point2f>> imagePoints;
   cv::Mat frame;
@@ -111,15 +114,13 @@ int main(int argc, char* argv[]) {
   capture.release();
   cv::waitKey(1);
 
-  cv::Mat rves, tvecs;
-  std::vector<std::vector<cv::Point3f>> objectPoints(imagePoints.size(), generateChessboardPoints(chessboardSize, squareSize));
-  cv::calibrateCamera(objectPoints, imagePoints, imageSize, camera.cameraMatrix, camera.distortion, rves, tvecs);
-
-
-  capture.open(cameraID);
+  std::vector<std::vector<cv::Point3f>> objectPoints(
+      imagePoints.size(), generateChessboardPoints(chessboardSize, squareSize));
+  rbv::Camera camera(cameraID, inCamera.getSettings(), objectPoints,
+                     imagePoints, imageSize);
 
   // Check camera data
-  if (!capture.isOpened()) {
+  if (!camera.openCapture()) {
     std::cerr << "Could access camera with id: '" << cameraID << "'\n";
     return 0;
   }
@@ -127,27 +128,29 @@ int main(int argc, char* argv[]) {
   bool undistorted = true, axes = true;
   cv::Mat undistort, display;
   while (true) {
-    capture >> frame;
+    camera.getNextFrame(frame);
 
     if (frame.empty()) {
       std::cerr << "Lost connection to camera\n";
       return 0;
-    } 
+    }
 
     std::vector<cv::Point2f> corners;
     bool found = cv::findChessboardCorners(frame, chessboardSize, corners);
 
     if (axes && found) {
       cv::Mat rvec, tvec;
-      std::vector<cv::Point3f> objectPoints = generateChessboardPoints(chessboardSize, squareSize);
-      cv::solvePnP(objectPoints, corners, camera.cameraMatrix, camera.distortion, rvec, tvec);
-      cv::drawFrameAxes(frame, camera.cameraMatrix, camera.distortion, rvec, tvec, 100);
+      std::vector<cv::Point3f> objectPoints =
+          generateChessboardPoints(chessboardSize, squareSize);
+      camera.solvePnP(corners, objectPoints, rvec, tvec);
+      cv::drawFrameAxes(frame, camera.getCameraMatrix(), camera.getDistortion(),
+                        rvec, tvec, 100);
     } else {
       cv::drawChessboardCorners(frame, chessboardSize, corners, found);
     }
 
     if (undistorted) {
-      cv::undistort(frame, undistort, camera.cameraMatrix, camera.distortion);
+      camera.undistortFrame(frame, undistort);
       undistort.copyTo(display);
     } else {
       frame.copyTo(display);
@@ -182,12 +185,14 @@ int main(int argc, char* argv[]) {
   return 0;
 }
 
-std::vector<cv::Point3f> generateChessboardPoints(cv::Size boardSize, double squareSize) {
+std::vector<cv::Point3f> generateChessboardPoints(cv::Size boardSize,
+                                                  double squareSize) {
   std::vector<cv::Point3f> points;
   points.reserve(boardSize.area());
   for (int h = 0; h < boardSize.height; h++) {
     for (int w = 0; w < boardSize.width; w++) {
-      points.push_back({static_cast<float>(squareSize * h), static_cast<float>(squareSize * w), 0});
+      points.push_back({static_cast<float>(squareSize * h),
+                        static_cast<float>(squareSize * w), 0});
     }
   }
 

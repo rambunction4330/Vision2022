@@ -1,28 +1,45 @@
-#include <iostream>
-#include <vector>
-#include <string>
 #include <filesystem>
+#include <iostream>
+#include <string>
+#include <vector>
 
 #include <opencv2/core.hpp>
-#include <opencv2/videoio.hpp>
 #include <opencv2/highgui.hpp>
+#include <opencv2/videoio.hpp>
 
-#include <rbv/Threshold.hpp>
+#include <rbv/HSVThreshold.hpp>
 
-int main(int argc, char* argv[]) {
+void highHCallback(int pos, void *highH) { *((int *)highH) = pos; }
+void lowHCallback(int pos, void *lowH) { *((int *)lowH) = pos; }
+void highSCallback(int pos, void *highS) { *((int *)highS) = pos; }
+void lowSCallback(int pos, void *lowS) { *((int *)lowS) = pos; }
+void highVCallback(int pos, void *highV) { *((int *)highV) = pos; }
+void lowVCallback(int pos, void *lowV) { *((int *)lowV) = pos; }
+
+void blurCallback(int pos, void *blur) { *((int *)blur) = pos; }
+void closeShapeCallback(int pos, void *shape) {
+  *((cv::MorphShapes *)shape) = cv::MorphShapes(pos);
+}
+void closeSizeCallback(int pos, void *size) { *((int *)size) = pos; }
+void openShapeCallback(int pos, void *shape) {
+  *((cv::MorphShapes *)shape) = cv::MorphShapes(pos);
+}
+void openSizeCallback(int pos, void *size) { *((int *)size) = pos; }
+
+int main(int argc, char *argv[]) {
 
   /***********************
    * Command Line Parsing
    ***********************/
 
   // Keys definign command line argumanet behavior
-  const std::string parseKeys = 
-    "{ h ? help usage |   | prints this message                   }"
-    "{ id cameraID    | 0 | Camera id used for thresholding       }"
-    "{ b blur         |   | Whether to present a blur slider      }"
-    "{ m morph        |   | Whether to present morphology sliders }"
-    "{ i in input     |   | Input file                            }"
-    "{ o out output   |   | Output file                           }";
+  const std::string parseKeys =
+      "{ h ? help usage |   | prints this message                   }"
+      "{ id cameraID    | 0 | Camera id used for thresholding       }"
+      "{ b blur         |   | Whether to present a blur slider      }"
+      "{ m morph        |   | Whether to present morphology sliders }"
+      "{ i in input     |   | Input file                            }"
+      "{ o out output   |   | Output file                           }";
 
   // Object to parse any argument given
   cv::CommandLineParser parser(argc, argv, parseKeys);
@@ -48,19 +65,37 @@ int main(int argc, char* argv[]) {
     return 0;
   }
 
+  // Morphology variables
+  int highH = 180, lowH = 0, highS = 255, lowS = 0, highV = 255, lowV = 0;
+  int blurSize = 0, openSize = 0, closeSize = 0;
+  cv::MorphShapes openShape = cv::MORPH_RECT, closeShape = cv::MORPH_RECT;
+
   /*************
    * File Input
    *************/
 
   // Variable to hold any thresholding data
-  rbv::Threshold threshold;
+  rbv::HSVThreshold inThreshold;
 
   // If a file was given, extract the data from that file
   if (inputFile != "") {
     if (std::filesystem::exists(inputFile)) {
       cv::FileStorage storage(inputFile, cv::FileStorage::READ);
       if (storage.isOpened()) {
-        storage["Threshold"] >> threshold;
+        storage["HSVThreshold"] >> inThreshold;
+
+        highH = inThreshold.getHighH();
+        lowH = inThreshold.getLowH();
+        highS = inThreshold.getHighS();
+        lowS = inThreshold.getLowS();
+        highV = inThreshold.getHighV();
+        lowV = inThreshold.getLowV();
+
+        blurSize = inThreshold.getBlurSize();
+        openSize = inThreshold.getOpenSize();
+        closeSize = inThreshold.getCloseSize();
+        openShape = inThreshold.getOpenShape();
+        closeShape = inThreshold.getCloseShape();
       } else {
         std::cerr << "Error opening input file: '" << inputFile << "'\n";
         return 0;
@@ -76,36 +111,38 @@ int main(int argc, char* argv[]) {
    * GUI Setup
    ************/
 
-  // Morphology variables
-  int openSize = 15, openShape = 0, closeSize = 15, closeShape = 0;
-
   // Window
   cv::namedWindow("HSV Tunning");
 
   // Trackbars
-  cv::createTrackbar("High H",  "HSV Tunning", &threshold.highH(),  180);
-  cv::createTrackbar("Low H", "HSV Tunning", &threshold.lowH(), 180);
-  cv::createTrackbar("High S",  "HSV Tunning", &threshold.highS(),  255);
-  cv::createTrackbar("Low S", "HSV Tunning", &threshold.lowS(), 255);
-  cv::createTrackbar("High V",  "HSV Tunning", &threshold.highV(),  255);
-  cv::createTrackbar("Low V", "HSV Tunning", &threshold.lowV(), 255);
+  cv::createTrackbar("High H", "HSV Tunning", NULL, 180, highHCallback, &highH);
+  cv::createTrackbar("Low H", "HSV Tunning", NULL, 180, highHCallback, &lowH);
+  cv::createTrackbar("High S", "HSV Tunning", NULL, 255, highHCallback, &highS);
+  cv::createTrackbar("Low S", "HSV Tunning", NULL, 255, highHCallback, &lowS);
+  cv::createTrackbar("High V", "HSV Tunning", NULL, 255, highHCallback, &highV);
+  cv::createTrackbar("Low V", "HSV Tunning", NULL, 255, highHCallback, &lowV);
 
   // Conditionaly add extra sliders depending on argument flags
   if (useBlurSlider) {
-    cv::createTrackbar("Blur Size", "HSV Tunning", &threshold.blurSize, 100);
+    cv::createTrackbar("Blur Size", "HSV Tunning", NULL, 100, blurCallback,
+                       &blurSize);
   }
 
   if (useMorphSlider) {
-    cv::createTrackbar("Open Size", "HSV Tunning", &openSize, 100);
-    cv::createTrackbar("Open Type", "HSV Tunning", &openShape, 2);
-    cv::createTrackbar("Close Size", "HSV Tunning", &closeSize, 100);
-    cv::createTrackbar("Close Type", "HSV Tunning", &closeShape, 2);
+    cv::createTrackbar("Open Size", "HSV Tunning", NULL, 100, openSizeCallback,
+                       &openSize);
+    cv::createTrackbar("Open Shape", "HSV Tunning", NULL, 2, openShapeCallback,
+                       &openShape);
+    cv::createTrackbar("Close Size", "HSV Tunning", NULL, 100,
+                       closeSizeCallback, &closeSize);
+    cv::createTrackbar("Close Shape", "HSV Tunning", NULL, 2,
+                       closeShapeCallback, &closeShape);
   }
 
   /************
    * Main Loop
    ************/
- 
+
   // Open camera with the given id
   cv::VideoCapture capture(cameraID);
 
@@ -115,8 +152,8 @@ int main(int argc, char* argv[]) {
     return 0;
   }
 
-  cv::Mat frame, thresh;
-  cv::Mat& display = frame;
+  cv::Mat frame, thresh, display;
+  rbv::HSVThreshold outThreshold;
   bool showThresh = true;
   while (true) {
     // Get the next frame from the camera.
@@ -128,19 +165,16 @@ int main(int argc, char* argv[]) {
       break;
     }
 
-    // Pull in data from morph sliders.
-    // This doesn't have to be done for the others since they are directly modify the value. 
-    if (useMorphSlider) {
-      threshold.closeMatrix = cv::getStructuringElement(closeShape, {std::max(closeSize, 1), std::max(closeSize, 1)});
-      threshold.openMatrix = cv::getStructuringElement(openShape, {std::max(openSize, 1), std::max(openSize, 1)});
-    }
+    outThreshold =
+        rbv::HSVThreshold({lowH, lowS, lowV}, {highH, highS, highV}, blurSize,
+                          openSize, openShape, closeSize, closeShape);
 
-    threshold.apply(frame, thresh);
+    outThreshold.apply(frame, thresh);
 
     if (showThresh) {
-      display = thresh;
+      thresh.copyTo(display);
     } else {
-      display = frame;
+      frame.copyTo(display);
     }
 
     // Show Image
@@ -156,7 +190,7 @@ int main(int argc, char* argv[]) {
     if (key == 's' && outputFile != "") {
       cv::FileStorage storage(outputFile, cv::FileStorage::WRITE);
       if (storage.isOpened()) {
-        storage << "Threshold" << threshold;
+        storage << "HSVThreshold" << outThreshold;
       } else {
         std::cerr << "Error opening output file: '" << outputFile << "'\n";
         break;
@@ -168,9 +202,9 @@ int main(int argc, char* argv[]) {
     if (key == 'q' || key == 27) {
       break;
     }
-  } 
+  }
 
-   // Cleanup when done.
+  // Cleanup when done.
   cv::destroyAllWindows();
   capture.release();
   cv::waitKey(1);
