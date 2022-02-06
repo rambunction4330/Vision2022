@@ -57,7 +57,7 @@ int main(int argc, char *argv[]) {
   // Get arguments from the parser
   int camera0ID = parser.get<double>("camera0ID");
   int camera1ID = parser.get<double>("camera1ID");
-  bool useStereo  = parser.has("stereo");
+  bool useStereo = parser.has("stereo");
   bool useBlurSlider = parser.has("blur");
   bool useMorphSlider = parser.has("morph");
   std::string inputFile = parser.get<std::string>("input");
@@ -147,10 +147,10 @@ int main(int argc, char *argv[]) {
    ************/
 
   // Open camera with the given id
-  cv::VideoCapture capture0(camera0ID), capture1;
+  cv::VideoCapture capture0, capture1;
 
   // Check camera data
-  if (!capture0.isOpened()) {
+  if (!capture0.open(camera0ID)) {
     std::cerr << "Could access camera with id: '" << camera0ID << "'\n";
     return 0;
   }
@@ -160,36 +160,27 @@ int main(int argc, char *argv[]) {
     capture1.open(camera1ID);
 
     // Check camera data
-    if (!capture1.isOpened()) {
+    if (!capture1.open(camera1ID)) {
       std::cerr << "Could access camera with id: '" << camera1ID << "'\n";
       return 0;
-   } 
+    }
   }
 
-  cv::Mat frame0, thresh0, display;
-  cv::Mat frame1, thresh1;
+  cv::Mat frame, frame1, thresh, display;
   rbv::HSVThreshold outThreshold;
-  bool showThresh = true;
+  bool showThresh = true, showBlur = false;
   while (true) {
     outThreshold =
-    rbv::HSVThreshold({lowH, lowS, lowV}, {highH, highS, highV}, blurSize,
-                      openSize, openShape, closeSize, closeShape);
+        rbv::HSVThreshold({lowH, lowS, lowV}, {highH, highS, highV}, blurSize,
+                          openSize, openShape, closeSize, closeShape);
 
     // Get the next frame from the camera.
-    capture0 >> frame0;
+    capture0 >> frame;
 
     // Check camera data.
-    if (frame0.empty()) {
+    if (frame.empty()) {
       std::cerr << "Lost connection to camera\n";
       break;
-    }
-
-    outThreshold.apply(frame0, thresh0);
-
-    if (showThresh) {
-      thresh0.copyTo(display);
-    } else {
-      frame0.copyTo(display);
     }
 
     if (useStereo) {
@@ -202,12 +193,18 @@ int main(int argc, char *argv[]) {
         break;
       }
 
-      outThreshold.apply(frame1, thresh1);
+      cv::hconcat(frame, frame1, frame);
+    }
 
-      if (showThresh) {
-        cv::hconcat(display, thresh1, display);
+    outThreshold.apply(frame, thresh);
+
+    if (showThresh) {
+      thresh.copyTo(display);
+    } else {
+      if (showBlur) {
+        cv::blur(frame, display, {blurSize, blurSize});
       } else {
-        cv::hconcat(display, frame1, display);
+        frame.copyTo(display);
       }
     }
 
@@ -219,6 +216,7 @@ int main(int argc, char *argv[]) {
 
     // Toggle dispay settings
     showThresh = (key == 't') ? !showThresh : showThresh;
+    showBlur = (key == 'b') ? !showBlur : showBlur;
 
     // Save if 's' is pressed, and a file was given to output to.
     if (key == 's' && outputFile != "") {
@@ -241,7 +239,9 @@ int main(int argc, char *argv[]) {
   // Cleanup when done.
   cv::destroyAllWindows();
   capture0.release();
-  if (useStereo) { capture1.release(); }
+  if (useStereo) {
+    capture1.release();
+  }
   cv::waitKey(1);
   return 0;
 }

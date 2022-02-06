@@ -13,19 +13,19 @@ class Camera {
 public:
   Camera() {}
 
-  Camera(int id,
+  Camera(int id, const cv::Size &imageSize,
          const cv::Mat &cameraMatrix = cv::Mat(),
          const cv::Mat &distortion = cv::Mat());
 
-  Camera(int id,
+  Camera(int id, const cv::Size &imageSize,
          const std::vector<std::vector<cv::Point3f>> &objectPoints,
-         const std::vector<std::vector<cv::Point2f>> &imagerPoints,
-         cv::Size imageSize);
+         const std::vector<std::vector<cv::Point2f>> &imagerPoints);
 
   const int &getID() const { return id; }
   const cv::VideoCapture &getVideoCapture() const { return videoCapture; }
   const cv::Mat &getCameraMatrix() const { return cameraMatrix; }
   const cv::Mat &getDistortion() const { return distortion; }
+  const cv::Size &getImageSize() const { return imageSize; }
 
   bool openCapture() { return videoCapture.open(id); }
   void releaseCapture() { videoCapture.release(); }
@@ -53,6 +53,7 @@ private:
   cv::VideoCapture videoCapture;
   cv::Mat cameraMatrix;
   cv::Mat distortion;
+  cv::Size imageSize;
 };
 
 static void write(cv::FileStorage &fs, const std::string &, const Camera &x) {

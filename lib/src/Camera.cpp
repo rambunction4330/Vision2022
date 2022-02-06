@@ -6,17 +6,16 @@
 
 namespace rbv {
 
-Camera::Camera(int id, const cv::Mat &cameraMatrix,
+Camera::Camera(int id, const cv::Size &imageSize, const cv::Mat &cameraMatrix,
                const cv::Mat &distortion)
-    : id(id), cameraMatrix(cameraMatrix),
-      distortion(distortion) {}
+    : id(id), cameraMatrix(cameraMatrix), distortion(distortion),
+      imageSize(imageSize) {}
 
-Camera::Camera(int id,
+Camera::Camera(int id, const cv::Size &imageSize,
                const std::vector<std::vector<cv::Point3f>> &objectPoints,
-               const std::vector<std::vector<cv::Point2f>> &imagerPoints,
-               cv::Size imageSize)
-    : id(id), cameraMatrix(cv::Mat()),
-      distortion(cv::Mat()) {
+               const std::vector<std::vector<cv::Point2f>> &imagerPoints)
+    : id(id), cameraMatrix(cv::Mat()), distortion(cv::Mat()),
+      imageSize(imageSize) {
   calibrate(objectPoints, imagerPoints, imageSize);
 }
 
@@ -51,12 +50,13 @@ void Camera::solvePnP(const std::vector<cv::Point2f> &imagePoints,
 void Camera::write(cv::FileStorage &fs) const {
   fs << "{"
      << "ID" << id << "CameraMatrix" << cameraMatrix << "Distortion"
-     << distortion << "}";
+     << distortion << "ImageSize" << imageSize << "}";
 }
 
 void Camera::read(const cv::FileNode &node) {
   node["ID"] >> id;
   node["CameraMatrix"] >> cameraMatrix;
   node["Distortion"] >> distortion;
+  node["ImageSize"] >> imageSize;
 }
 } // namespace rbv
