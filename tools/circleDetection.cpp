@@ -22,10 +22,11 @@ int main(int argc, char *argv[]) {
 
   // Keys for argument parsing
   const std::string keys =
-      "{ h ? help usage |                 | prints this message }"
-      "{ c calibration  | calibration.xml | calibration file    }"
-      "{ t threshold    |  threshold.xml  | threshold file      }"
-      "{ v visual       |                 | flag to create gui  }";
+      "{ h ? help usage |                 | prints this message          }"
+      "{ c calibration  | calibration.xml | calibration file             }"
+      "{ t threshold    |  threshold.xml  | threshold file               }"
+      "{ r radius       |     114.3       | dimensions of the chessboard }"
+      "{ m method       |    bounding     | dMethod of rect detection    }";
 
   // Parser object
   cv::CommandLineParser parser(argc, argv, keys);
@@ -41,7 +42,8 @@ int main(int argc, char *argv[]) {
   // Get arguments from the parser
   std::string calibrationFile = parser.get<std::string>("calibration");
   std::string thresholdFile = parser.get<std::string>("threshold");
-  bool useVisual = parser.has("visual");
+  std::string method = parser.get<std::string>("method");
+  float radius = parser.get<float>("radius");
 
   // Cheack for errors
   if (!parser.check()) {
@@ -76,7 +78,7 @@ int main(int argc, char *argv[]) {
   }
 
   cv::Mat frame, thresh, display;
-  bool showThresh = false;
+  bool showThresh = false, show3D = false;
   while (true) {
     // Get next frame
     camera.getNextFrame(frame);
@@ -91,58 +93,56 @@ int main(int argc, char *argv[]) {
     threshold.apply(frame, thresh);
 
     // Setup display
-    if (useVisual) {
-      if (showThresh) {
-        cv::cvtColor(thresh, display, cv::COLOR_GRAY2BGR);
-      } else {
-        frame.copyTo(display);
-      }
+    if (showThresh) {
+      cv::cvtColor(thresh, display, cv::COLOR_GRAY2BGR);
+    } else {
+      frame.copyTo(display);
     }
 
     // Find contours
     std::vector<std::vector<cv::Point2f>> contours;
     cv::findContours(thresh, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
     
-    // Make sure there are enough contours (but not too many)
-    if (contours.size() > 0 && contours.size() < 5) {
-      for (int i = 0; i < contours.size(); i++) {
-        // Get boundign rect to determine "rectness"
-        cv::RotatedRect rect = cv::minAreaRect(contours[i]);
-        double rectArea = rect.size.width * rect.size.height;
-        double contourArea = cv::contourArea(contours[i]);
+    // Interate over the contours
+    for (const auto& contour: contours) {
 
-        // Check rect size and "reectness"
-        if (contourArea > 25 && contourArea/rectArea > 0.7) {
+      // Check rect size
+      if (cv::contourArea(contour) > 15) {
 
-          // Approximate rect by given emthod
-          std::vector<cv::Point2f> approxRect;
-          bool foundRect;
-          foundRect = rbv::approxNGonPolyDP(contours[i], approxRect);
+        // Approximate rect by given emthod
+        rbv::Circle circle;
+        bool foundCircle;
+        if (method == "bounding") {
+          foundCircle = rbv::approxCircleBounding(contour, circle);
+        } else if (method == "hough") {
+          foundCircle = rbv::approxCircleHough(contour, circle);
+        } else {
+          foundCircle = rbv::approxCircleBounding(contour, circle);
+        }
 
-          // Draw if found
-          if (foundRect) {
-            for (int j = 0; j < 4; j++) {
-              cv::line(display, approxRect[j], approxRect[(j+1)%4], {255, 0, 0}, 2);
-            }
+        // Draw if found
+        if (foundCircle) {
+          if (show3D) {
+            // TODO: Implement 3D
+          } else {
+            cv::circle(display, circle.center, circle.radius, {0, 0, 255});
           }
         }
       }
     }
 
-    if (useVisual) {
-      // Draw rect
-      cv::imshow("Target Detection", display);
+    // Draw rect
+    cv::imshow("Target Detection", display);
 
-      // Prosess keypresses
-      char key = cv::waitKey(30);
+    // Prosess keypresses
+    char key = cv::waitKey(30);
 
-      // Toggle view settings
-      showThresh = (key == 't') ? !showThresh : showThresh;
-  
-      // Quit
-      if (key == 27 || key == 'q') {
-        break;
-      }
+    // Toggle view settings
+    showThresh = (key == 't') ? !showThresh : showThresh;
+ 
+    // Quit
+    if (key == 27 || key == 'q') {
+      break;
     }
   }
 

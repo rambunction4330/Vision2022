@@ -1,14 +1,17 @@
 
 #pragma once
 
-#include <cmath>
 #include <iostream>
-#include <limits>
+#include <vector>
 
 #include <opencv2/core.hpp>
 #include <opencv2/videoio.hpp>
 
 namespace rbv {
+
+/*
+ * Class encapsulating a usb camera
+ */
 class Camera {
 public:
   Camera() {}
