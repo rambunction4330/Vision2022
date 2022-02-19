@@ -12,17 +12,28 @@
 #include <rbv/Camera.hpp>
 #include <rbv/StereoPair.hpp>
 
-void viewStereo(rbv::StereoPair pair) {
+std::vector<cv::Point3f> generateChessboardPoints(cv::Size boardSize,
+                                                  double squareSize) {
+  std::vector<cv::Point3f> points;
+  points.reserve(boardSize.area());
+  for (int h = 0; h < boardSize.height; h++) {
+    for (int w = 0; w < boardSize.width; w++) {
+      points.push_back({static_cast<float>(squareSize * h),
+                        static_cast<float>(squareSize * w), 0});
+    }
+  }
+  return points;
+}
+
+void viewStereo(rbv::StereoPair pair, cv::Size chessboardSize, double squareSize) {
   if (!pair.openCaptures()) {
     std::cerr << "Could access pair\n";
     return;
   }
 
-  cv::Ptr<cv::StereoMatcher> matcher = cv::StereoSGBM::create();
-
   rbv::StereoFrame frame, rectified;
   cv::Mat disparity, disparityNorm, stereoDisplay, disparityDisplay, together;
-  bool useRectify = true, normalizeDisparity = true;
+  bool showRectified = true, normalizeDisparity = true, showCorners = true, showError = true, showAxes = false;
   while (true) {
     pair.getNextFrames(frame);
 
@@ -32,9 +43,9 @@ void viewStereo(rbv::StereoPair pair) {
     }
 
     pair.rectifyStereoFrame(frame, rectified);
-    pair.calculateDisparity(frame, disparity);
+    pair.calculateDisparity(frame, disparity); 
 
-    if (useRectify) {
+    if (showRectified) {
       cv::hconcat(rectified.leftImage, rectified.rightImage, stereoDisplay);
     } else {
       cv::hconcat(frame.leftImage, frame.rightImage, stereoDisplay);
@@ -55,9 +66,11 @@ void viewStereo(rbv::StereoPair pair) {
 
     char key = cv::waitKey(30);
 
-    useRectify = (key == 'r') ? !useRectify : useRectify;
-    normalizeDisparity =
-        (key == 'n') ? !normalizeDisparity : normalizeDisparity;
+    showRectified = (key == 'r') ? !showRectified : showRectified;
+    normalizeDisparity = (key == 'n') ? !normalizeDisparity : normalizeDisparity;
+    showCorners = (key == 'c') ? !showCorners : showCorners;
+    showError = (key == 'e') ? !showError : showError;
+    showAxes = (key == 'a') ? !showError : showError;
 
     if (key == 'q' || key == 27) {
       break;
@@ -70,7 +83,7 @@ void viewStereo(rbv::StereoPair pair) {
   cv::waitKey(1);
 }
 
-void viewCamera(rbv::Camera camera) {
+void viewCamera(rbv::Camera camera, cv::Size chessboardSize, double squareSize) {
 
   if (!camera.openCapture()) {
     std::cerr << "Could access camera\n";
@@ -78,7 +91,7 @@ void viewCamera(rbv::Camera camera) {
   }
 
   cv::Mat frame, display;
-  bool useUndistort = true;
+  bool showUndistort = true, showChessboard = true, showError = true, showAxes = false;;
   while (true) {
     camera.getNextFrame(frame);
 
@@ -87,7 +100,39 @@ void viewCamera(rbv::Camera camera) {
       break;
     }
 
-    if (useUndistort) {
+    if (showChessboard) {
+      std::vector<cv::Point2f> corners;
+      bool found = cv::findChessboardCorners(frame, chessboardSize, corners);
+      
+      if (found) {
+          const static std::vector<cv::Point3f> objectPoints = generateChessboardPoints(chessboardSize, squareSize);
+          cv::Mat rvec, tvec;
+          std::vector<cv::Point2f> reprojection;
+          camera.solvePnP(objectPoints, corners, rvec, tvec);
+          camera.projectPoints(objectPoints, rvec, tvec, reprojection); 
+
+        if (showAxes) {
+          cv::drawFrameAxes(frame, camera.getCameraMatrix(), camera.getDistortion(), rvec, tvec, squareSize*5);
+          std::string lable = "(" + std::to_string(tvec.at<double>(0, 0)) +  "mm, " 
+                                  + std::to_string(tvec.at<double>(1, 0)) + "mm, " 
+                                  + std::to_string(tvec.at<double>(2, 0)) + "mm)";
+          cv::putText(frame, lable, reprojection[0], cv::FONT_HERSHEY_PLAIN, 1, {0, 0, 255});
+        }
+
+        if (showError) {
+          for (int i = 0; i < objectPoints.size(); i++) {
+            cv::circle(frame, reprojection[i], 5, {0, 0, 255}, 2);
+            cv::line(frame, corners[i], reprojection[i], {0, 0, 255}, 2);
+          }
+        }
+
+        for (const cv::Point2f& corner : corners) {
+          cv::circle(frame, corner, 5, {0, 255, 0}, 2);
+        }
+      }
+    }
+
+    if (showUndistort) {
       camera.undistortFrame(frame, display);
     } else {
       frame.copyTo(display);
@@ -97,7 +142,10 @@ void viewCamera(rbv::Camera camera) {
 
     char key = cv::waitKey(30);
 
-    useUndistort = (key == 'u') ? !useUndistort : useUndistort;
+    showUndistort = (key == 'u') ? !showUndistort : showUndistort;
+    showChessboard = (key == 'c') ? !showChessboard : showChessboard;
+    showError = (key == 'e') ? !showError : showError;
+    showAxes = (key == 'a') ? !showAxes : showAxes;
 
     if (key == 'q' || key == 27) {
       break;
@@ -159,7 +207,7 @@ int main(int argc, char *argv[]) {
         storage.open(calibrationFile, cv::FileStorage::READ)) {
       rbv::StereoPair pair;
       storage["StereoPair"] >> pair;
-      viewStereo(pair);
+      viewStereo(pair, chessboardSize, squareSize);
     } else {
       std::cerr << "Error opening output file: '" << calibrationFile << "'\n";
       return 0;
@@ -170,7 +218,7 @@ int main(int argc, char *argv[]) {
         storage.open(calibrationFile, cv::FileStorage::READ)) {
       rbv::Camera camera;
       storage["Camera"] >> camera;
-      viewCamera(camera);
+      viewCamera(camera, chessboardSize, squareSize);
     } else {
       std::cerr << "Error opening output file: '" << calibrationFile << "'\n";
       return 0;

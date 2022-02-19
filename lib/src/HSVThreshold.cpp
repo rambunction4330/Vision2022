@@ -20,25 +20,22 @@ HSVThreshold::HSVThreshold(cv::Scalar_<int> l, cv::Scalar_<int> h, int bSize,
 }
 
 void HSVThreshold::apply(const cv::Mat &input, cv::Mat &output) const {
-  cv::Mat temp;
-  input.copyTo(temp);
+  input.copyTo(output);
 
   if (blurSize > 0) {
-    cv::blur(temp, temp, {blurSize, blurSize});
+    cv::blur(output, output, {blurSize, blurSize});
   }
 
-  cv::cvtColor(temp, temp, cv::COLOR_BGR2HSV);
-  cv::inRange(temp, cv::Scalar(low), cv::Scalar(high), temp);
+  cv::cvtColor(output, output, cv::COLOR_BGR2HSV);
+  cv::inRange(output, cv::Scalar(low), cv::Scalar(high), output);
 
   if (!openMatrix.empty()) {
-    cv::morphologyEx(temp, temp, cv::MORPH_OPEN, openMatrix);
+    cv::morphologyEx(output, output, cv::MORPH_OPEN, openMatrix);
   }
 
   if (!closeMatrix.empty()) {
-    cv::morphologyEx(temp, temp, cv::MORPH_CLOSE, closeMatrix);
+    cv::morphologyEx(output, output, cv::MORPH_CLOSE, closeMatrix);
   }
-
-  temp.copyTo(output);
 }
 
 void HSVThreshold::write(cv::FileStorage &fs) const {
@@ -52,9 +49,17 @@ void HSVThreshold::read(const cv::FileNode &node) {
   node["High"] >> high;
   node["Low"] >> low;
   node["BlurSize"] >> blurSize;
-  node["OpenSize"] >> openMatrix;
-  node["CloseSize"] >> closeMatrix;
+  node["OpenSize"] >> openSize;
+  node["CloseSize"] >> closeSize;
   node["OpenShape"] >> openShape;
   node["CloseShape"] >> closeShape;
+
+  if (openSize > 0) {
+    openMatrix = cv::getStructuringElement(openShape, {openSize, openSize});
+  }
+
+  if (closeSize > 0) {
+    closeMatrix = cv::getStructuringElement(closeShape, {closeSize, closeSize});
+  }
 }
 } // namespace rbv

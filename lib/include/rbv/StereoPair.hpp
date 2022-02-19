@@ -24,6 +24,16 @@ public:
 
   const Camera &getLeftCamera() { return leftCamera; }
   const Camera &getRightCamera() { return rightCamera; }
+  const cv::Size &getImageSize() { return imageSize; }
+  const cv::Mat &getRotationLeft2Right() { return rotationLeft2Right; }
+  const cv::Mat getTralslationLeft2Right() { return tralslationLeft2Right; }
+  const cv::Mat &getEssentailMat() { return essentail; }
+  const cv::Mat &getFundamentalMat() { return fundamental; }
+  const cv::Mat &getRectifiedLeft() { return rectifiedLeft; }
+  const cv::Mat &getRectifiedRight() { return rectifiedRight; }
+  const cv::Mat &getProjectionLeft() { return projectionLeft; }
+  const cv::Mat &getProjectionRight() { return projectionRight; }
+  const cv::Mat &getDisparityToDepth() { return disparityToDepth; }
 
   bool openCaptures();
   void releaseCaptures();

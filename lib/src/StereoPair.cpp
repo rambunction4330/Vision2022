@@ -111,7 +111,7 @@ void StereoPair::calculateDisparityRectified(const StereoFrame &rectified,
   StereoFrame temp;
   cv::cvtColor(rectified.leftImage, temp.leftImage, cv::COLOR_BGR2GRAY);
   cv::cvtColor(rectified.rightImage, temp.rightImage, cv::COLOR_BGR2GRAY);
-  disparityMatcher->compute(temp.leftImage, temp.rightImage, disparity);
+  disparityMatcher->compute(temp.rightImage, temp.leftImage, disparity);
 }
 
 void StereoPair::calculateDisparity(const StereoFrame &src,
@@ -144,8 +144,10 @@ void StereoPair::triangulatePoints(
     const std::vector<cv::Point2f> &leftPoints,
     const std::vector<cv::Point2f> &rightPoints,
     std::vector<cv::Point3f> &worldPoints) const {
+  cv::Mat points4D;
   cv::triangulatePoints(projectionLeft, projectionRight, leftPoints,
-                        rightPoints, worldPoints);
+                        rightPoints, points4D);
+  cv::convertPointsFromHomogeneous(points4D, worldPoints);
 }
 
 void StereoPair::write(cv::FileStorage &fs) const {

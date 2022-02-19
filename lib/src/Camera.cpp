@@ -41,10 +41,17 @@ Camera::calibrate(const std::vector<std::vector<cv::Point3f>> &objectPoints,
                              cv::noArray());
 }
 
-void Camera::solvePnP(const std::vector<cv::Point2f> &imagePoints,
-                      const std::vector<cv::Point3f> &objectPoints,
+void Camera::solvePnP(const std::vector<cv::Point3f> &objectPoints,
+                      const std::vector<cv::Point2f> &imagePoints,
                       cv::Mat &rvec, cv::Mat &tvec) const {
   cv::solvePnP(objectPoints, imagePoints, cameraMatrix, distortion, rvec, tvec);
+}
+
+void Camera::projectPoints(const std::vector<cv::Point3f> &objectPoints,
+                           cv::Mat rvec, cv::Mat tvec,
+                           std::vector<cv::Point2f> &imagePoints) const {
+  cv::projectPoints(objectPoints, rvec, tvec, cameraMatrix, distortion,
+                    imagePoints);
 }
 
 void Camera::write(cv::FileStorage &fs) const {

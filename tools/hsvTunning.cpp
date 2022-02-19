@@ -99,11 +99,12 @@ int main(int argc, char *argv[]) {
         closeSize = inThreshold.getCloseSize();
         openShape = inThreshold.getOpenShape();
         closeShape = inThreshold.getCloseShape();
+
+        storage.release();
       } else {
         std::cerr << "Error opening input file: '" << inputFile << "'\n";
         return 0;
       }
-      storage.release();
     } else {
       std::cerr << "Could not find input file: '" << inputFile << "'\n";
       return 0;

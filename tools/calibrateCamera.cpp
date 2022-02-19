@@ -11,7 +11,17 @@
 #include <rbv/Camera.hpp>
 
 std::vector<cv::Point3f> generateChessboardPoints(cv::Size boardSize,
-                                                  double squareSize);
+                                                  double squareSize) {
+  std::vector<cv::Point3f> points;
+  points.reserve(boardSize.area());
+  for (int h = 0; h < boardSize.height; h++) {
+    for (int w = 0; w < boardSize.width; w++) {
+      points.push_back({static_cast<float>(squareSize * h),
+                        static_cast<float>(squareSize * w), 0});
+    }
+  }
+  return points;
+}
 
 int main(int argc, char *argv[]) {
 
@@ -123,17 +133,4 @@ int main(int argc, char *argv[]) {
     return 0;
   }
   storage.release();
-}
-
-std::vector<cv::Point3f> generateChessboardPoints(cv::Size boardSize,
-                                                  double squareSize) {
-  std::vector<cv::Point3f> points;
-  points.reserve(boardSize.area());
-  for (int h = 0; h < boardSize.height; h++) {
-    for (int w = 0; w < boardSize.width; w++) {
-      points.push_back({static_cast<float>(squareSize * h),
-                        static_cast<float>(squareSize * w), 0});
-    }
-  }
-  return points;
 }

@@ -38,12 +38,12 @@ public:
                    const std::vector<std::vector<cv::Point2f>> &imagerPoints,
                    const cv::Size &imageSize);
 
-  void solvePnP(const std::vector<cv::Point2f> &imagePoints,
-                const std::vector<cv::Point3f> &objectPoints, cv::Mat &rvec,
+  void solvePnP(const std::vector<cv::Point3f> &objectPoints,
+                const std::vector<cv::Point2f> &imagePoints, cv::Mat &rvec,
                 cv::Mat &tvec) const;
 
-  void projectPoints(const std::vector<cv::Point3f> &worldPoints,
-                     std::vector<cv::Point2f> &imagePoints) const;
+  void projectPoints(const std::vector<cv::Point3f> &objectPoints, cv::Mat rvec,
+                     cv::Mat tvec, std::vector<cv::Point2f> &imagePoints) const;
 
   void write(cv::FileStorage &fs) const;
   void read(const cv::FileNode &node);
