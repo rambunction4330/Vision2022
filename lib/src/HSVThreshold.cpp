@@ -36,6 +36,8 @@ void HSVThreshold::apply(const cv::Mat &input, cv::Mat &output) const {
   if (!closeMatrix.empty()) {
     cv::morphologyEx(output, output, cv::MORPH_CLOSE, closeMatrix);
   }
+
+  cv::morphologyEx(output, output, cv::MORPH_DILATE, cv::getStructuringElement(cv::MORPH_RECT, {5, 5}));
 }
 
 void HSVThreshold::write(cv::FileStorage &fs) const {

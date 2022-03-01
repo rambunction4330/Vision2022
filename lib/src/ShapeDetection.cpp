@@ -31,8 +31,8 @@ bool approxNGonHough(const std::vector<cv::Point2f> &contour,
 
   // Find the contour center (or any pointinside the contour).
   cv::Rect bounding = cv::boundingRect(contour);
-  cv::Point2f center(bounding.x + bounding.width / 2,
-                     bounding.y + bounding.height / 2);
+  cv::Point2f center((bounding.x + bounding.width) / 2,
+                     (bounding.y + bounding.height) / 2);
   std::vector<cv::Point2f> centredPoints;
   centredPoints.reserve(contour.size());
 
@@ -51,6 +51,7 @@ bool approxNGonHough(const std::vector<cv::Point2f> &contour,
 
   // Wrong number of sides
   if (lines.size() != numSides) {
+    std::cout << "failed!\n";
     return false;
   }
 
@@ -111,7 +112,7 @@ bool approxCircleBounding(const std::vector<cv::Point2f> &contour,
   return true;
 }
 
-bool approxCircleHough(std::vector<cv::Point2f> contour, Circle circle) {
+bool approxCircleHough(const std::vector<cv::Point2f>& contour, Circle& circle) {
 
   // Determine image size for contour
   cv::Rect bounding = cv::boundingRect(contour);

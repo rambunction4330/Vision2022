@@ -26,7 +26,7 @@ int main(int argc, char *argv[]) {
       "{ c calibration  | calibration.xml | calibration file             }"
       "{ t threshold    |  threshold.xml  | threshold file               }"
       "{ r radius       |     114.3       | dimensions of the chessboard }"
-      "{ m method       |    bounding     | dMethod of rect detection    }";
+      "{ m method       |    bounding     | Method of rect detection    }";
 
   // Parser object
   cv::CommandLineParser parser(argc, argv, keys);
