@@ -22,10 +22,12 @@ int main(int argc, char *argv[]) {
 
   // Keys for argument parsing
   const std::string keys =
-      "{ h ? help usage |                 | prints this message }"
-      "{ c calibration  | calibration.xml | calibration file    }"
-      "{ t threshold    |  threshold.xml  | threshold file      }"
-      "{ v visual       |                 | flag to create gui  }";
+      "{ h ? help usage |                 | prints this message  }"
+      "{ c calibration  | calibration.xml | calibration file     }"
+      "{ t threshold    |  threshold.xml  | threshold file       }"
+      "{ s rectSize     |    (127, 50.8)   | dimensions of target }"
+      "{ a angle        |      0.0       | camera angle (pitch) }"
+      "{ v visual       |                 | flag to create gui   }";
 
   // Parser object
   cv::CommandLineParser parser(argc, argv, keys);
@@ -42,6 +44,29 @@ int main(int argc, char *argv[]) {
   std::string calibrationFile = parser.get<std::string>("calibration");
   std::string thresholdFile = parser.get<std::string>("threshold");
   bool useVisual = parser.has("visual");
+
+  cv::Size2f rectSize;
+  if (sscanf(parser.get<std::string>("rectSize").c_str(), "(%f,%f)",
+             &rectSize.width, &rectSize.height) != 2) {
+    std::cerr << "Invalid format for argument 'rectSize'\n";
+    return 0;
+  }
+
+  // Generate object points
+  std::vector<cv::Point3f> objectPoints;
+  objectPoints.emplace_back(-rectSize.height/2,  rectSize.width/2, 0.0);
+  objectPoints.emplace_back( rectSize.height/2,  rectSize.width/2, 0.0);
+  objectPoints.emplace_back( rectSize.height/2, -rectSize.width/2, 0.0);
+  objectPoints.emplace_back(-rectSize.height/2, -rectSize.width/2, 0.0);
+
+  // Get Rodrigues vector for rotation
+  double angle = parser.get<double>("angle");
+  cv::Matx33d rotationMat(1,             0,                         0, 
+                          0, cos(angle * CV_PI / 180), -sin(angle * CV_PI / 180),
+                          0, sin(angle * CV_PI / 180),  cos(angle * CV_PI / 180));
+
+  cv::Mat rotationVec;
+  cv::Rodrigues(rotationMat, rotationVec);
 
   // Cheack for errors
   if (!parser.check()) {
@@ -76,7 +101,7 @@ int main(int argc, char *argv[]) {
   }
 
   cv::Mat frame, thresh, display;
-  bool showThresh = false;
+  bool showThresh = false, show3D = false, printData = false;
   while (true) {
     // Get next frame
     camera.getNextFrame(frame);
@@ -90,6 +115,8 @@ int main(int argc, char *argv[]) {
     // Threshold image
     threshold.apply(frame, thresh);
 
+    cv::dilate(thresh, thresh, cv::getStructuringElement(cv::MORPH_RECT, {5,5}));
+
     // Setup display
     if (useVisual) {
       if (showThresh) {
@@ -100,32 +127,111 @@ int main(int argc, char *argv[]) {
     }
 
     // Find contours
+    std::vector<std::vector<cv::Point2i>> intContours;
+    cv::findContours(thresh, intContours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+
+    // Convert contours to the proper data type
     std::vector<std::vector<cv::Point2f>> contours;
-    cv::findContours(thresh, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+    for (auto contour: intContours) {
+      std::vector<cv::Point2f> temp;
+      for (auto point: contour) {
+        temp.push_back(point);
+      }
+      contours.push_back(temp);
+    }
+
+    // Vector to hold "good" rects and an arbitrary score
+    std::vector<std::vector<cv::Point2f>> goodRects;
+    std::vector<double> rectScores;
     
     // Make sure there are enough contours (but not too many)
-    if (contours.size() > 0 && contours.size() < 5) {
-      for (int i = 0; i < contours.size(); i++) {
+    if (contours.size() > 0 && contours.size() < 7) {
+      for (const auto& contour: contours) {
         // Get boundign rect to determine "rectness"
-        cv::RotatedRect rect = cv::minAreaRect(contours[i]);
+        cv::RotatedRect rect = cv::minAreaRect(contour);
         double rectArea = rect.size.width * rect.size.height;
-        double contourArea = cv::contourArea(contours[i]);
+        double contourArea = cv::contourArea(contour);
 
-        // Check rect size and "reectness"
-        if (contourArea > 25 && contourArea/rectArea > 0.7) {
+        // Check rect size and "rectness"
+        if (contourArea > 15 && contourArea/rectArea > 0.7) {
 
-          // Approximate rect by given emthod
+          // Convex hull
+          std::vector<cv::Point2f> hull;
+          cv::convexHull(contour, hull);
+
+          // Approximate rect
           std::vector<cv::Point2f> approxRect;
           bool foundRect;
-          foundRect = rbv::approxNGonPolyDP(contours[i], approxRect);
+          foundRect = rbv::approxNGonPolyDP(hull, approxRect);
 
-          // Draw if found
           if (foundRect) {
-            for (int j = 0; j < 4; j++) {
-              cv::line(display, approxRect[j], approxRect[(j+1)%4], {255, 0, 0}, 2);
+            // Reorder points
+            std::sort(approxRect.begin(), approxRect.end(), [](const cv::Point2f& a, const cv::Point2f& b) { return a.x < b.x; });
+
+            if (approxRect[0].y > approxRect[1].y) {
+              cv::Point2f temp = approxRect[0];
+              approxRect[0] = approxRect[1];
+              approxRect[1] = temp;
             }
+
+            if (approxRect[2].y < approxRect[3].y) {
+              cv::Point2f temp = approxRect[2];
+              approxRect[2] = approxRect[3];
+              approxRect[3] = temp;
+            };
+
+            if (useVisual && !show3D) {
+              // Draw rect
+              for (int j = 0; j < 4; j++) {
+                cv::line(display, approxRect[j], approxRect[(j+1)%4], {255, 0, 0}, 2);
+              }
+            }
+
+            // Add rect and score to list;
+            goodRects.push_back(approxRect);
+            rectScores.push_back(cv::contourArea(approxRect) / cv::contourArea(hull));
           }
         }
+      }
+    }
+
+    // Find best rect
+    int bestIndex = -1;
+    double bestScore = 0.0;
+    for (int i = 0; i < rectScores.size(); i++) {
+      bestIndex = (rectScores[i] > bestScore) ? i : bestIndex;
+    }
+
+    if (bestIndex != -1) {
+      // Find the target position
+      cv::Mat rvec, tvec;
+      camera.solvePnP(objectPoints, goodRects[bestIndex], rvec, tvec);
+
+      if (useVisual && show3D) {
+        // Reproject Points
+        std::vector<cv::Point2f> reprojection;
+        camera.projectPoints(objectPoints, rvec, tvec, reprojection);
+
+        // Draw reprojection
+        for (int j = 0; j < 4; j++) {
+          cv::line(display, reprojection[j], reprojection[(j+1)%4], {0, 0, 255}, 2);
+        }
+
+        // Draw frame axis
+        cv::drawFrameAxes(display, camera.getCameraMatrix(), camera.getDistortion(), rvec, tvec, 20);
+      }
+
+      // Add in camera angle
+      cv::composeRT(rvec, tvec, rotationVec, cv::Mat::zeros({1,3}, CV_64F), rvec, tvec);
+
+      // Extract useful data from vectiors
+      double deltaAngle = atan2(tvec.at<double>(0,0), tvec.at<double>(0,2)) * 180/CV_PI;
+      double height     = tvec.at<double>(0,1)/1000;
+      double distance   = tvec.at<double>(0,2)/1000;
+
+      if (useVisual && printData) {
+        // print data to output stream
+        printf("deltaAngle: %0.8f, height: %0.8f, distance: %0.8f\n", deltaAngle, height, distance);
       }
     }
 
@@ -138,7 +244,9 @@ int main(int argc, char *argv[]) {
 
       // Toggle view settings
       showThresh = (key == 't') ? !showThresh : showThresh;
-  
+      show3D     = (key == 'd') ? !show3D     : show3D;
+      printData  = (key == 'p') ? !printData  : printData;
+
       // Quit
       if (key == 27 || key == 'q') {
         break;
