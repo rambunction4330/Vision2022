@@ -25,7 +25,8 @@ int main(int argc, char *argv[]) {
       "{ h ? help usage |                 | prints this message }"
       "{ c calibration  | calibration.xml | calibration file    }"
       "{ t threshold    |  threshold.xml  | threshold file      }"
-      "{ v visual       |                 | flag to create gui  }";
+      "{ v visual       |                 | flag to create gui  }"
+      "{ T team         |       4330      | team number         }";
 
   // Parser object
   cv::CommandLineParser parser(argc, argv, keys);
@@ -48,6 +49,16 @@ int main(int argc, char *argv[]) {
     parser.printErrors();
     return 0;
   }
+
+  /*********************
+   * NetworkTables Setup
+   *********************/
+  auto inst = nt::NetworkTableInstance::GetDefault();
+  inst.StartClientTeam(parser.get<std::string>("team"));
+  auto table = inst.GetTable("vision");
+  nt::NetworkTableEntry distanceEntry = table->GetEntry("distance");
+  nt::NetworkTableEntry heightEntry = table->GetEntry("height");
+  nt::NetworkTableEntry deltaAngleEntry = table->GetEntry("deltaAngle");
 
   // Get files
   cv::FileStorage storage;
@@ -144,6 +155,10 @@ int main(int argc, char *argv[]) {
         break;
       }
     }
+
+    distanceEntry.SetDouble(-1);
+    heighEntry.SetDouble(-1);
+    deltaAngleEntry.SetDouble(-1);
   }
 
   // Cleanup
