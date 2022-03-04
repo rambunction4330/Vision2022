@@ -85,6 +85,7 @@ int main(int argc, char *argv[]) {
   nt::NetworkTableEntry heightEntry = table->GetEntry("height");
   nt::NetworkTableEntry deltaAngleEntry = table->GetEntry("deltaAngle");
   nt::NetworkTableEntry deltaAngleEntry = table->GetEntry("isHubVisible");
+  // TODO: Last updated (UNIX Timestamp)
 
   // Get files
   cv::FileStorage storage;
