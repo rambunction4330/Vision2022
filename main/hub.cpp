@@ -84,6 +84,7 @@ int main(int argc, char *argv[]) {
   nt::NetworkTableEntry distanceEntry = table->GetEntry("distance");
   nt::NetworkTableEntry heightEntry = table->GetEntry("height");
   nt::NetworkTableEntry deltaAngleEntry = table->GetEntry("deltaAngle");
+  nt::NetworkTableEntry deltaAngleEntry = table->GetEntry("isHubVisible");
 
   // Get files
   cv::FileStorage storage;
@@ -265,8 +266,9 @@ int main(int argc, char *argv[]) {
     }
 
     distanceEntry.SetDouble(-1);
-    heighEntry.SetDouble(-1);
+    heightEntry.SetDouble(-1);
     deltaAngleEntry.SetDouble(-1);
+    isHubVisible.SetBoolean(false);
   }
 
   // Cleanup
