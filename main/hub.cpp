@@ -245,6 +245,13 @@ int main(int argc, char *argv[]) {
         // print data to output stream
         printf("deltaAngle: %0.8f, height: %0.8f, distance: %0.8f\n", deltaAngle, height, distance);
       }
+
+      deltaAngleEntry.SetDouble(deltaAngle);
+      heightEntry.SetDouble(height);
+      distanceEntry.SetDouble(distance);
+      isHubVisible.SetBoolean(true);
+    } else {
+      isHubVisible.SetBoolean(false);
     }
 
     if (useVisual) {
@@ -265,10 +272,6 @@ int main(int argc, char *argv[]) {
       }
     }
 
-    distanceEntry.SetDouble(-1);
-    heightEntry.SetDouble(-1);
-    deltaAngleEntry.SetDouble(-1);
-    isHubVisible.SetBoolean(false);
   }
 
   // Cleanup
