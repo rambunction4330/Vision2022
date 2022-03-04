@@ -5,7 +5,7 @@
     85 255 255 0</High>
   <Low>
     50 0 57 0</Low>
-  <BlurSize>2</BlurSize>
+  <BlurSize>5</BlurSize>
   <OpenSize>3</OpenSize>
   <CloseSize>2</CloseSize>
   <OpenShape>0</OpenShape>

@@ -45,13 +45,14 @@ int main(int argc, char *argv[]) {
   std::string calibrationFile = parser.get<std::string>("calibration");
   std::string thresholdFile = parser.get<std::string>("threshold");
   std::string method = parser.get<std::string>("method");
-  double rotation = parser.get<double>("rotation");
+  double rotation = -parser.get<double>("rotation");
 
-  cv::Matx33d rotationMat( cos(rotation * CV_PI / 180), 0, sin(rotation * CV_PI / 180), 
-                                        0,              1,                    0,
-                          -sin(rotation * CV_PI / 180), 0, cos(rotation * CV_PI / 180));
+  cv::Matx33d rotationMat( 1, 0,  0, 
+                                        0,              cos(rotation * CV_PI / 180),                    -sin(rotation * CV_PI / 180),
+                          0, sin(rotation * CV_PI / 180), cos(rotation * CV_PI / 180));
   
-  cv::Mat rotationVec, transVec = cv::Mat::zeros({1, 3}, CV_64F);
+  cv::Mat rotationVec;
+  cv::Matx31d transVec(0, -700, 0);
   cv::Rodrigues(rotationMat.inv(), rotationVec);
 
   cv::Size2f rectSize;
@@ -178,7 +179,11 @@ int main(int argc, char *argv[]) {
             cv::composeRT(rvec, tvec, rotationVec, transVec, rvec, tvec);
 
             std::string lable = "(" + std::to_string(tvec.at<double>(0,0)/1000) + ", " + std::to_string(tvec.at<double>(0,1)/1000) + ", " + std::to_string(tvec.at<double>(0,2)/1000) + ")";
-            cv::putText(display, lable, approxRect[0], 0, 0.5, {255,0,0  });
+            // cv::putText(display, lable, approxRect[0], 0, 0.5, {255,0,0  });
+            std::string lable1 = "angle: " + std::to_string(atan2(tvec.at<double>(0,0), tvec.at<double>(0,2)) * 180/CV_PI)
+                               + "\n height: " + std::to_string(-tvec.at<double>(0,1)/1000)
+                               + "\n distance: " + std::to_string(tvec.at<double>(0,2)/1000);
+            cv::putText(display, "angle: " + lable1, approxRect[3], 0, 0.5, {255,255, 0});
 
             for (int j = 0; j < 4; j++) {
               cv::line(display, reprojection[j], reprojection[(j+1)%4], {0, 0, 255}, 2);
